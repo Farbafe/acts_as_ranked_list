@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rake", "~> 13.0"
   spec.add_dependency "rspec", "~> 3.0"
   spec.add_dependency "standard", "~> 1.3"
+  spec.add_development_dependency "yard"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
