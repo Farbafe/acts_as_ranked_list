@@ -41,12 +41,6 @@
         extracted_klasses = described_class.send(:extracted_klasses)
         expect(extracted_klasses[mocked_model]).to be_nil
       end
-
-      it "reminds me of something" do
-        # gem build heynow.gemspec
-        # gem push heynow-0.1.2.gem
-        expect(true).to eq(false)
-      end
     end
   end
 end
