@@ -5,10 +5,42 @@ module ActsAsRankedList #:nodoc:
     module RankColumn
       # Sets the methods to rank `::ActiveRecord` objects. Please refer to 
       # the {file:README.md} file for usage and examples.
-      def self.call(caller_class, rank_column, touch_on_update, step_increment, avoid_collisions, new_item_at)
+      def self.call(caller_class, rank_column, touch_on_update, step_increment, avoid_collisions, new_item_at, scopes)
         caller_class.class_eval do
 
           private
+
+          define_singleton_method :scope_query do
+            @scope_query ||= 
+              begin
+                @named_scopes = []
+                scopes.map do |key, value|
+                  case value
+                  when ::Symbol
+                    if respond_to?(value)
+                      @named_scopes << value
+                      next
+                    end
+                    "#{caller_class.quoted_table_name}.#{connection.quote_column_name(key)} = \"#{value}\""
+                  when ::String, ::Integer, ::TrueClass, ::FalseClass, ::Float
+                    "#{caller_class.quoted_table_name}.#{connection.quote_column_name(key)} = \"#{value}\""
+                  when nil
+                    key_column_name = column_names.include?(key) ? key : "#{key}_id"
+                    "#{caller_class.quoted_table_name}.#{connection.quote_column_name(key_column_name)} IS NOT NULL"
+                  when ::Proc
+                    called_value = value.call
+                    if called_value.is_a?(::String)
+                      next called_value
+                    else
+                      @anonymous_scopes ||= all
+                      @anonymous_scopes.merge!(called_value)
+                      next
+                    end
+                  end
+                end.compact.join(" AND ") || "1 = 1"
+              end
+          end
+          scope_query # initializes variables
 
           define_singleton_method :new_item_at do
             new_item_at
@@ -28,7 +60,17 @@ module ActsAsRankedList #:nodoc:
           end
 
           define_singleton_method :acts_as_ranked_list_query do
-            default_scoped.unscope(:select, :where)
+            @acts_as_ranked_list_query ||= 
+              begin
+                query = @named_scopes.inject(default_scoped.unscope(:select, :where).where("#{scope_query}")) do |chain, scope|
+                  chain.send(*scope)
+                end
+                query.merge!(@anonymous_scopes) if @anonymous_scopes.present?
+                @named_scopes = nil
+                @anonymous_scopes = nil
+
+                query
+              end
           end
 
           define_singleton_method :quoted_rank_column do
@@ -52,20 +94,24 @@ module ActsAsRankedList #:nodoc:
           end
 
           define_singleton_method :spread_ranks do
-            sql = <<~SQL.squish
-              WITH ORDERED_ROW_NUMBER_CTE AS (
-                SELECT #{caller_class.primary_key}, 
-                  ROW_NUMBER() OVER (ORDER BY #{order_by_columns("ASC")}) AS rn
-                FROM #{caller_class.quoted_table_name}
-              )
-              UPDATE #{caller_class.quoted_table_name}
-              SET #{quoted_rank_column} = ORDERED_ROW_NUMBER_CTE.rn * #{step_increment} #{with_touch}
-              FROM ORDERED_ROW_NUMBER_CTE
-              WHERE #{caller_class.quoted_table_name}.#{caller_class.primary_key} = ORDERED_ROW_NUMBER_CTE.#{caller_class.primary_key}
-              AND #{quoted_rank_column_with_table_name} IS NOT NULL
-            SQL
+            @spread_ranks_sql ||= 
+              begin
+                scope_query_presence = scope_query.present? ? "AND #{scope_query}" : ""
+                <<~SQL.squish
+                  WITH ORDERED_ROW_NUMBER_CTE AS (
+                    SELECT #{caller_class.primary_key}, 
+                      ROW_NUMBER() OVER (ORDER BY #{order_by_columns("ASC")}) AS rn
+                    FROM #{caller_class.quoted_table_name}
+                  )
+                  UPDATE #{caller_class.quoted_table_name}
+                  SET #{quoted_rank_column} = ORDERED_ROW_NUMBER_CTE.rn * #{step_increment} #{with_touch}
+                  FROM ORDERED_ROW_NUMBER_CTE
+                  WHERE #{caller_class.quoted_table_name}.#{caller_class.primary_key} = ORDERED_ROW_NUMBER_CTE.#{caller_class.primary_key}
+                  AND #{quoted_rank_column_with_table_name} IS NOT NULL #{scope_query_presence}
+                SQL
+              end
 
-            connection.execute(sql)
+            connection.execute(@spread_ranks_sql)
           end
 
           define_singleton_method :with_touch do

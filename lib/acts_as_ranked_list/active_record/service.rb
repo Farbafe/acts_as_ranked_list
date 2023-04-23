@@ -17,6 +17,22 @@ module ActsAsRankedList
       #     acts_as_ranked_list column: "position", touch_on_update: false, step_increment: 0.5, avoid_collisions: false, new_item_at: :highest
       #   end
       #
+      # @example when using scope 
+      #   class TodoItem << ::ActiveRecord::Base
+      #     belongs_to :todo_list
+      #     scope :recently_added, -> { where(created_at: ::Time.now - 12.hours..) }
+      #     acts_as_ranked_list scope: do # you may use as many scopes together
+      #       column_name_one: "work", # items that have value `work` in column `column_name_one` are scoped together
+      #       column_name_two: :personal, # using a symbol is overloaded, check parameters and example for more info
+      #       column_name_three: 0, # this could be used to sub-rank items within a rank
+      #       column_name_four: true,
+      #       column_name_five: :recently_added, # ranks items within the `recently_added` scope
+      #       column_name_six: ::Proc.new { "column_name = 'value'" }, # useful for complex scopes, you may pass any valid SQL scopes
+      #       column_name_seven: ::Proc.new { where(column_name: value) }, # anonymous scopes
+      #       todo_list(_id): nil # ranks items scoped to their respective todo lists, works with or without `(_id)`
+      #     end
+      #   end
+      #
       # @since 0.2.0
       # @scope class
       # @param [Hash] user_options options
@@ -26,6 +42,11 @@ module ActsAsRankedList
       # @option user_options [Float/Integer] :step_increment The value to use for spreading ranks
       # @option user_options [Boolean] :avoid_collisions Controls avoiding rank collisions
       # @option user_options [Symbol] :new_item_at Controls where to add new items
+      # @option user_options [Hash] :scopes Scopes ranked items based on a column, and optional value
+      # @option scopes [String/Integer/Boolean/Float] :<any_key> Uses passed value in column <any_key> to scope items
+      # @option scopes [Symbol] :<any_key> Uses passed value in column <any_key> to scope items, or a named scope
+      # @option scopes [Proc] :<any_key> Calls passed block's value in column <any_key> to scope items, or an anonymous scope
+      # @option scopes [NilClass] :<any_key> Scopes items to a relationship, by querying non-nil values in column <any_key> or <any_key_id>
       # @return [void]
       def acts_as_ranked_list(user_options = {})
         options = {
@@ -33,12 +54,13 @@ module ActsAsRankedList
           touch_on_update: true,
           step_increment: 1024,
           avoid_collisions: true,
-          new_item_at: :lowest
+          new_item_at: :lowest,
+          scopes: {}
         }
         options.update(user_options)
 
         ::ActsAsRankedList::ActiveRecord::PersistenceCallback.call(self)
-        ::ActsAsRankedList::ActiveRecord::RankColumn.call(self, options[:column], options[:touch_on_update], options[:step_increment], options[:avoid_collisions], options[:new_item_at])
+        ::ActsAsRankedList::ActiveRecord::RankColumn.call(self, options[:column], options[:touch_on_update], options[:step_increment], options[:avoid_collisions], options[:new_item_at], options[:scopes])
 
         include ::ActsAsRankedList::ActiveRecord::Service::InstanceMethods
         include ::ActsAsRankedList::ActiveRecord::SkipPersistence
