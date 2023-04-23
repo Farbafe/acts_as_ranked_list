@@ -11,10 +11,10 @@
     end
 
     context "when using an integer column not called rank" do
-      let(:advanced_todo_item) { ::AdvancedTodoItem.create!(title: "advanced title", position: 20) }
+      let(:non_default_todo_item) { ::NonDefaultTodoItem.create!(title: "advanced title", position: 20) }
 
       it "gets the current rank" do
-        expect(advanced_todo_item.current_rank).to eq(20)
+        expect(non_default_todo_item.current_rank).to eq(20)
       end
     end
   end
@@ -48,7 +48,7 @@
   describe "#increase_rank" do
     before do
       ::DefaultTodoItem.delete_all
-      ::AdvancedTodoItem.delete_all
+      ::NonDefaultTodoItem.delete_all
     end
 
     context "when adding items at the bottom of the list" do
@@ -63,13 +63,13 @@
     end
 
     context "when adding items at the top of the list" do
-      let!(:advanced_todo_item_a) { ::AdvancedTodoItem.create! }
-      let!(:advanced_todo_item_b) { ::AdvancedTodoItem.create! }
+      let!(:non_default_todo_item_a) { ::NonDefaultTodoItem.create! }
+      let!(:non_default_todo_item_b) { ::NonDefaultTodoItem.create! }
 
       it "puts item higher in the list" do
-        expect(advanced_todo_item_a.current_rank < advanced_todo_item_b.current_rank).to be_falsey
-        advanced_todo_item_a.increase_rank
-        expect(advanced_todo_item_a.current_rank < advanced_todo_item_b.current_rank).to be_truthy
+        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_falsey
+        non_default_todo_item_a.increase_rank
+        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_truthy
       end
     end
 
@@ -87,7 +87,7 @@
   describe "#decrease_rank" do
     before do
       ::DefaultTodoItem.delete_all
-      ::AdvancedTodoItem.delete_all
+      ::NonDefaultTodoItem.delete_all
     end
 
     context "when adding items at the bottom of the list" do
@@ -102,13 +102,13 @@
     end
 
     context "when adding items at the top of the list" do
-      let!(:advanced_todo_item_a) { ::AdvancedTodoItem.create! }
-      let!(:advanced_todo_item_b) { ::AdvancedTodoItem.create! }
+      let!(:non_default_todo_item_a) { ::NonDefaultTodoItem.create! }
+      let!(:non_default_todo_item_b) { ::NonDefaultTodoItem.create! }
 
       it "puts item higher in the list" do
-        expect(advanced_todo_item_a.current_rank < advanced_todo_item_b.current_rank).to be_falsey
-        advanced_todo_item_b.decrease_rank
-        expect(advanced_todo_item_a.current_rank < advanced_todo_item_b.current_rank).to be_truthy
+        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_falsey
+        non_default_todo_item_b.decrease_rank
+        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_truthy
       end
     end
 
@@ -126,7 +126,7 @@
   describe ".get_highest_items" do
     before (:each) do
       ::DefaultTodoItem.delete_all
-      ::AdvancedTodoItem.delete_all
+      ::NonDefaultTodoItem.delete_all
     end
 
     context "when called without arguments" do
@@ -162,7 +162,7 @@
   describe ".get_lowest_items" do
     before (:each) do
       ::DefaultTodoItem.delete_all
-      ::AdvancedTodoItem.delete_all
+      ::NonDefaultTodoItem.delete_all
     end
 
     context "when called without arguments" do
