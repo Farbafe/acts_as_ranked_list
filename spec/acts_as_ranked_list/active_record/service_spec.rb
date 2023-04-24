@@ -195,51 +195,189 @@
   end
 
   describe "#highest_item?" do
-    let(:todo_item_a) { ::DefaultTodoItem.create!(title: "Legend", rank: 20) }
-    let(:todo_item_b) { ::DefaultTodoItem.create!(title: "Normal", rank: 50) }
+    context "when used on an unscoped model" do
+      let(:todo_item_a) { ::DefaultTodoItem.create!(title: "Legend", rank: 20) }
+      let(:todo_item_b) { ::DefaultTodoItem.create!(title: "Normal", rank: 50) }
 
-    before do
-      ::DefaultTodoItem.delete_all
+      before do
+        ::DefaultTodoItem.delete_all
 
-      # creates todo items
-      todo_item_a
-      todo_item_b
-    end
+        # creates todo items
+        todo_item_a
+        todo_item_b
+      end
 
-    context "when used on the highest item" do
-      it "returns true" do
-        expect(todo_item_a.highest_item?).to be_truthy
+      context "when used on the highest item" do
+        it "returns true" do
+          expect(todo_item_a.highest_item?).to be_truthy
+        end
+      end
+
+      context "when used on not the highest item" do
+        it "returns false" do
+          expect(todo_item_b.highest_item?).to be_falsey
+        end
       end
     end
 
-    context "when used on not the highest item" do
-      it "returns false" do
-        expect(todo_item_b.highest_item?).to be_falsey
+    context "when used on a scoped model" do
+      before (:each) do
+        ::DefaultTodoItem.delete_all
+      end
+
+      context "when scoping on an integer column" do
+        let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+        let!(:scoped_integer_todo_item_a) { ::ScopedIntegerTodoItem.create!(scope_integer: 0, rank: 10) }
+        let!(:scoped_integer_todo_item_b) { ::ScopedIntegerTodoItem.create!(scope_integer: 500, rank: 0) }
+        let!(:scoped_integer_todo_item_c) { ::ScopedIntegerTodoItem.create!(scope_integer: 500, rank: 20) }
+
+        it "evaluates correctly" do
+          expect(scoped_integer_todo_item_a.highest_item?).to be_truthy
+          expect(scoped_integer_todo_item_b.highest_item?).to be_truthy
+          expect(scoped_integer_todo_item_c.highest_item?).to be_falsey
+          expect(todo_item.highest_item?).to be_falsey
+        end
+      end
+
+      context "when scoping on a string column" do
+        context "when using a string to define the scope" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_string_todo_item_a) { ::ScopedStringTodoItem.create!(scope_string: "work", rank: 10) }
+          let!(:scoped_string_todo_item_b) { ::ScopedStringTodoItem.create!(scope_string: "personal", rank: 0) }
+          let!(:scoped_string_todo_item_c) { ::ScopedStringTodoItem.create!(scope_string: "personal", rank: 20) }
+  
+          it "evaluates correctly" do
+            expect(scoped_string_todo_item_a.highest_item?).to be_truthy
+            expect(scoped_string_todo_item_b.highest_item?).to be_truthy
+            expect(scoped_string_todo_item_c.highest_item?).to be_falsey
+            expect(todo_item.highest_item?).to be_falsey
+          end
+        end
+
+        context "when using a symbol to define the scope" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_string_todo_item_a) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :work, rank: 10) }
+          let!(:scoped_string_todo_item_b) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :personal, rank: 0) }
+          let!(:scoped_string_todo_item_c) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :personal, rank: 20) }
+  
+          it "evaluates correctly" do
+            expect(scoped_string_todo_item_a.highest_item?).to be_truthy
+            expect(scoped_string_todo_item_b.highest_item?).to be_truthy
+            expect(scoped_string_todo_item_c.highest_item?).to be_falsey
+            expect(todo_item.highest_item?).to be_falsey
+          end
+        end
+      end
+
+      context "when scoping on multiple columns" do
+        context "when using a symbol and integer to define the scopes" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_multiple_todo_item_monday_a) { ::ScopedMultipleTodoItem.create!(title: "water the plants", rank: 10) }
+          let!(:scoped_multiple_todo_item_monday_b) { ::ScopedMultipleTodoItem.create!(title: "sing to the lilies", rank: 20) }
+          let!(:scoped_multiple_todo_item_tuesday_a) { ::ScopedMultipleTodoItem.create!(title: "sing to the lilies", scope_integer: :tuesday, rank: 15) }
+          let!(:scoped_multiple_todo_item_tuesday_b) { ::ScopedMultipleTodoItem.create!(title: "water the plants", scope_integer: :tuesday, rank: 22) }
+
+          it "evaluates item relative to scope" do
+            expect(scoped_multiple_todo_item_monday_a.highest_item?).to be_truthy
+            expect(scoped_multiple_todo_item_tuesday_a.highest_item?).to be_truthy
+            expect(scoped_multiple_todo_item_monday_b.highest_item?).to be_falsey
+            expect(scoped_multiple_todo_item_tuesday_b.highest_item?).to be_falsey
+          end
+        end
       end
     end
   end
 
   describe "#lowest_item?" do
-    let(:todo_item_a) { ::DefaultTodoItem.create!(title: "top", rank: 20) }
-    let(:todo_item_b) { ::DefaultTodoItem.create!(title: "bottom", rank: 50) }
+    context "when used on an unscoped model" do
+      let(:todo_item_a) { ::DefaultTodoItem.create!(title: "top", rank: 20) }
+      let(:todo_item_b) { ::DefaultTodoItem.create!(title: "bottom", rank: 50) }
 
-    before do
-      ::DefaultTodoItem.delete_all
+      before do
+        ::DefaultTodoItem.delete_all
 
-      # creates todo items
-      todo_item_a
-      todo_item_b
-    end
+        # creates todo items
+        todo_item_a
+        todo_item_b
+      end
 
-    context "when used on the lowest item" do
-      it "returns true" do
-        expect(todo_item_b.lowest_item?).to be_truthy
+      context "when used on the lowest item" do
+        it "returns true" do
+          expect(todo_item_b.lowest_item?).to be_truthy
+        end
+      end
+
+      context "when used on not the lowest item" do
+        it "returns false" do
+          expect(todo_item_a.lowest_item?).to be_falsey
+        end
       end
     end
 
-    context "when used on not the lowest item" do
-      it "returns false" do
-        expect(todo_item_a.lowest_item?).to be_falsey
+    context "when used on a scoped model" do
+      before (:each) do
+        ::DefaultTodoItem.delete_all
+      end
+
+      context "when scoping on an integer column" do
+        let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+        let!(:scoped_integer_todo_item_a) { ::ScopedIntegerTodoItem.create!(scope_integer: 0, rank: 10) }
+        let!(:scoped_integer_todo_item_b) { ::ScopedIntegerTodoItem.create!(scope_integer: 500, rank: 0) }
+        let!(:scoped_integer_todo_item_c) { ::ScopedIntegerTodoItem.create!(scope_integer: 500, rank: 20) }
+
+        it "evaluates correctly" do
+          expect(scoped_integer_todo_item_a.lowest_item?).to be_truthy
+          expect(scoped_integer_todo_item_b.lowest_item?).to be_falsey
+          expect(scoped_integer_todo_item_c.lowest_item?).to be_truthy
+          expect(todo_item.lowest_item?).to be_falsey
+        end
+      end
+
+      context "when scoping on a string column" do
+        context "when using a string to define the scope" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_string_todo_item_a) { ::ScopedStringTodoItem.create!(scope_string: "work", rank: 10) }
+          let!(:scoped_string_todo_item_b) { ::ScopedStringTodoItem.create!(scope_string: "personal", rank: 0) }
+          let!(:scoped_string_todo_item_c) { ::ScopedStringTodoItem.create!(scope_string: "personal", rank: 20) }
+  
+          it "evaluates correctly" do
+            expect(scoped_string_todo_item_a.lowest_item?).to be_truthy
+            expect(scoped_string_todo_item_b.lowest_item?).to be_falsey
+            expect(scoped_string_todo_item_c.lowest_item?).to be_truthy
+            expect(todo_item.lowest_item?).to be_falsey
+          end
+        end
+
+        context "when using a symbol to define the scope" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_string_todo_item_a) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :work, rank: 10) }
+          let!(:scoped_string_todo_item_b) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :personal, rank: 0) }
+          let!(:scoped_string_todo_item_c) { ::ScopedStringViaSymbolTodoItem.create!(scope_string: :personal, rank: 20) }
+  
+          it "evaluates correctly" do
+            expect(scoped_string_todo_item_a.lowest_item?).to be_truthy
+            expect(scoped_string_todo_item_b.lowest_item?).to be_falsey
+            expect(scoped_string_todo_item_c.lowest_item?).to be_truthy
+            expect(todo_item.lowest_item?).to be_falsey
+          end
+        end
+      end
+
+      context "when scoping on multiple columns" do
+        context "when using a symbol and integer to define the scopes" do
+          let!(:todo_item) { ::DefaultTodoItem.create!(rank: 5) }
+          let!(:scoped_multiple_todo_item_monday_a) { ::ScopedMultipleTodoItem.create!(title: "water the plants", rank: 10) }
+          let!(:scoped_multiple_todo_item_monday_b) { ::ScopedMultipleTodoItem.create!(title: "sing to the lilies", rank: 20) }
+          let!(:scoped_multiple_todo_item_tuesday_a) { ::ScopedMultipleTodoItem.create!(title: "sing to the lilies", scope_integer: :tuesday, rank: 15) }
+          let!(:scoped_multiple_todo_item_tuesday_b) { ::ScopedMultipleTodoItem.create!(title: "water the plants", scope_integer: :tuesday, rank: 22) }
+
+          it "evaluates item relative to scope" do
+            expect(scoped_multiple_todo_item_monday_a.lowest_item?).to be_falsey
+            expect(scoped_multiple_todo_item_tuesday_a.lowest_item?).to be_falsey
+            expect(scoped_multiple_todo_item_monday_b.lowest_item?).to be_truthy
+            expect(scoped_multiple_todo_item_tuesday_b.lowest_item?).to be_truthy
+          end
+        end
       end
     end
   end
@@ -459,63 +597,104 @@
   end
 
   describe ".spread_ranks" do
-    before (:each) do
-      ::DefaultTodoItem.delete_all
-    end
-
-    context "when ranks are in collision" do
-      let(:now) { ::Time.now }
-      let!(:todo_item_group) do
-        4.times.map do |index|
-          ::DefaultTodoItem.create!(rank: index, updated_at: now)
-        end
+    context "when used on an unscoped class" do
+      before (:each) do
+        ::DefaultTodoItem.delete_all
       end
 
-      it "re-orders collisioned ranks by updated_at and primary_key" do
-        ::DefaultTodoItem.spread_ranks
-        expect(::DefaultTodoItem.get_highest_items(4)).to eq(todo_item_group)
-      end
-
-      it "re-orders collisioned ranks by updated_at" do
-        ::DefaultTodoItem.get_highest_items.each_with_index do |todo_item, index|
-          todo_item.update!(rank: 200, updated_at: ::Time.now + (4 - index).minute)
-        end
-        ::DefaultTodoItem.spread_ranks
-        expect(::DefaultTodoItem.get_highest_items(4)).to eq(todo_item_group.reverse)
-      end
-    end
-
-    context "when no ranks are in collision" do
-      let!(:todo_item_group) do
-        4.times.each_with_index do |index|
-          ::DefaultTodoItem.create!(rank: index)
-        end
-      end
-
-      it "spreads rank by step_increment amount" do
-        sql = <<~SQL
-          SELECT rank, (lag(rank, 0, 0) OVER (order by rank)) AS diff_value FROM todo_items
-        SQL
-        value_before_spread = ::ActiveRecord::Base.connection.execute(sql).to_a.map { |diff| diff["diff_value"] }
-        ::DefaultTodoItem.spread_ranks
-        value_after_spread = ::ActiveRecord::Base.connection.execute(sql).to_a.map { |diff| diff["diff_value"] }
-        expect(value_before_spread).to eq((0..3).to_a)
-        expect(value_after_spread).to eq((::DefaultTodoItem.step_increment .. ::DefaultTodoItem.step_increment * 4).step(::DefaultTodoItem.step_increment).to_a)
-      end
-    end
-
-    context "when items are not ranked" do
-      let!(:todo_item_group) do
-        ::DefaultTodoItem.with_skip_persistence do
-          4.times.each_with_index do |index|
-            ::DefaultTodoItem.create!(rank: nil)
+      context "when no ranks are in collision" do
+        let!(:todo_item_group) do
+          4.times.map do |index|
+            ::DefaultTodoItem.create!(rank: index)
           end
         end
+
+        it "spreads rank by rank" do
+          ::DefaultTodoItem.spread_ranks
+          expect(::DefaultTodoItem.get_highest_items(4).pluck(:id)).to eq(todo_item_group.map(&:id))
+        end
       end
 
-      it "ignores those items" do
-        ::DefaultTodoItem.spread_ranks
-        expect(::DefaultTodoItem.pluck(:rank).compact).to be_blank
+      context "when ranks are in collision" do
+        let!(:todo_item_group) do
+          ::DefaultTodoItem.with_skip_persistence do
+            4.times.each_with_index.map do |index|
+              ::DefaultTodoItem.create!(rank: 42, updated_at: ::Time.now + (4 - index).minute)
+            end
+          end
+        end
+
+        it "spreads rank by updated_at" do
+          ::DefaultTodoItem.spread_ranks
+          expect(::DefaultTodoItem.get_highest_items(4).pluck(:id)).to eq(todo_item_group.reverse.map(&:id))
+        end
+
+        it "spreads rank by step_increment amount" do
+          sql = <<~SQL
+            SELECT rank, (lag(rank, 0, 0) OVER (order by rank)) AS diff_value FROM todo_items
+          SQL
+          value_before_spread = ::ActiveRecord::Base.connection.execute(sql).to_a.map { |diff| diff["diff_value"] }
+          ::DefaultTodoItem.spread_ranks
+          value_after_spread = ::ActiveRecord::Base.connection.execute(sql).to_a.map { |diff| diff["diff_value"] }
+          expect(value_before_spread.uniq).to eq([42])
+          expect(value_after_spread).to eq((::DefaultTodoItem.step_increment .. ::DefaultTodoItem.step_increment * 4).step(::DefaultTodoItem.step_increment).to_a)
+        end
+      end
+
+      context "when items are not ranked" do
+        let!(:todo_item_group) do
+          ::DefaultTodoItem.with_skip_persistence do
+            4.times.each_with_index do |index|
+              ::DefaultTodoItem.create!(rank: nil)
+            end
+          end
+        end
+
+        it "ignores unranked items" do
+          ::DefaultTodoItem.spread_ranks
+          expect(::DefaultTodoItem.pluck(:rank).compact).to be_blank
+        end
+      end
+    end
+
+    context "when used on a scoped class" do
+      before (:each) do
+        ::DefaultTodoItem.delete_all
+      end
+
+      context "when items belong to different scopes" do
+        let!(:todo_item_group) do
+          4.times.map do |index|
+            ::ScopedMultipleTodoItem.create!(rank: index, scope_integer: index % 2)
+          end
+        end
+
+        it "spreads rank by rank" do
+          ::ScopedMultipleTodoItem.spread_ranks
+          expected_todo_items = [todo_item_group[0], todo_item_group[2], todo_item_group[1], todo_item_group[3]].map(&:id)
+          expect(::ScopedMultipleTodoItem.get_highest_items(4).pluck(:id)).to eq(expected_todo_items)
+        end
+      end
+
+      context "when scoped items are not ranked" do
+        let!(:todo_item_group_a) do
+          ::ScopedMultipleTodoItem.with_skip_persistence([DefaultTodoItem]) do
+            2.times.each_with_index do |index|
+              ::ScopedMultipleTodoItem.create!(rank: index % 2 == 0 ? 42 : nil, scope_integer: 0)
+            end
+            2.times.each_with_index do |index|
+              ::ScopedMultipleTodoItem.create!(rank: index % 2 == 0 ? 42 : nil, scope_integer: 1)
+            end
+            2.times.each_with_index do |index|
+              ::DefaultTodoItem.create!(rank: index % 2 == 0 ? 42 : nil, scope_integer: nil) # for visibility that this item is not scoped
+            end
+          end
+        end
+
+        it "ignores unranked items" do
+          ::DefaultTodoItem.spread_ranks
+          expect(::DefaultTodoItem.get_highest_items.count).to eq(3)
+        end
       end
     end
   end
