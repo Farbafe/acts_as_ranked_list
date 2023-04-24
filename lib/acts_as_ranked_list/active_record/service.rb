@@ -81,11 +81,11 @@ module ActsAsRankedList
         end
 
         def ranked_list_before_update_callback
-          nil
+          update_ranks
         end
 
         def ranked_list_after_update_callback
-          update_ranks
+          nil
         end
 
         def ranked_list_after_save_callback
@@ -115,7 +115,7 @@ module ActsAsRankedList
 
           query_count = query_count.count
 
-          if query_count == 0
+          if query_count < 1
             return
           end
 

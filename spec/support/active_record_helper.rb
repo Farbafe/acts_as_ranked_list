@@ -4,12 +4,17 @@ end
 
 def initialize_schema
   ::ActiveRecord::Schema.define do
+    create_table :todo_lists do |t|
+      t.string :title
+    end
+
     create_table :todo_items do |t|
       t.string :title
       t.decimal :rank
       t.string :scope_string
       t.boolean :scope_boolean
       t.integer :scope_integer
+      t.references :todo_list
 
       t.timestamps
     end
@@ -41,8 +46,14 @@ connect_to_databse
 
 initialize_schema
 
+class TodoList < ::ActiveRecord::Base
+  has_many :todo_items
+end
+
 class TodoItem < ::ActiveRecord::Base
   abstract_class
+
+  belongs_to :todo_list
 end
 
 class DefaultTodoItem < TodoItem
@@ -86,6 +97,11 @@ class ScopedMultipleTodoItem < TodoItem
     self.scope_integer ||= :monday
   end
 end
+
+class ScopedListTodoItem < TodoItem
+  acts_as_ranked_list scopes: { todo_list: nil }
+end
+
 class NonDefaultTodoItem < ::ActiveRecord::Base
   acts_as_ranked_list column: "position", step_increment: 128, new_item_at: :highest
 end

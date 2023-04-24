@@ -46,40 +46,70 @@
   end
 
   describe "#increase_rank" do
-    before do
-      ::DefaultTodoItem.delete_all
-      ::NonDefaultTodoItem.delete_all
-    end
-
-    context "when adding items at the bottom of the list" do
-      let!(:todo_item_a) { ::DefaultTodoItem.create! }
-      let!(:todo_item_b) { ::DefaultTodoItem.create! }
-
-      it "puts item higher in the list" do
-        expect(todo_item_a.current_rank < todo_item_b.current_rank).to be_truthy
-        todo_item_b.increase_rank
-        expect(todo_item_a.current_rank < todo_item_b.current_rank).to be_falsey
+    context "when used on an unscoped model" do
+      before do
+        ::DefaultTodoItem.delete_all
+        ::NonDefaultTodoItem.delete_all
+      end
+  
+      context "when adding items at the bottom of the list" do
+        let!(:todo_item_a) { ::DefaultTodoItem.create! }
+        let!(:todo_item_b) { ::DefaultTodoItem.create! }
+  
+        it "puts item higher in the list" do
+          expect(todo_item_a.current_rank < todo_item_b.current_rank).to be_truthy
+          todo_item_b.increase_rank
+          expect(todo_item_a.current_rank < todo_item_b.current_rank).to be_falsey
+        end
+      end
+  
+      context "when adding items at the top of the list" do
+        let!(:non_default_todo_item_a) { ::NonDefaultTodoItem.create! }
+        let!(:non_default_todo_item_b) { ::NonDefaultTodoItem.create! }
+  
+        it "puts item higher in the list" do
+          expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_falsey
+          non_default_todo_item_a.increase_rank
+          expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_truthy
+        end
+      end
+  
+      context "when current item is unranked" do
+        let!(:todo_item_a) { ::UnrankedTodoItem.create! }
+        let!(:todo_item_b) { ::UnrankedTodoItem.create! }
+  
+        it "not raises error" do
+          expect(todo_item_b.current_rank).to be_nil
+          expect { todo_item_b.increase_rank }.not_to raise_error
+        end
       end
     end
 
-    context "when adding items at the top of the list" do
-      let!(:non_default_todo_item_a) { ::NonDefaultTodoItem.create! }
-      let!(:non_default_todo_item_b) { ::NonDefaultTodoItem.create! }
+    context "when used on a scoped model" do
+      let(:todo_list_soon) { ::TodoList.create!(title: "300 ft plans") }
+      let(:todo_list_later) { ::TodoList.create!(title: "1_000 ft plans") }
+      let(:todo_list_never) { ::TodoList.create!(title: "50_000 ft plans") }
+      let(:todo_item_soon_a) { ::ScopedListTodoItem.create!(todo_list: todo_list_soon, rank: 200) }
+      let(:todo_item_soon_b) { ::ScopedListTodoItem.create!(todo_list: todo_list_soon, rank: 400) }
+      let(:todo_item_later_a) { ::ScopedListTodoItem.create!(todo_list: todo_list_later, rank: 600) }
+      let(:todo_item_never_a) { ::ScopedListTodoItem.create!(todo_list: todo_list_never, rank: 200) }
+      let(:todo_item_never_b) { ::ScopedListTodoItem.create!(todo_list: todo_list_never, rank: 600) }
 
-      it "puts item higher in the list" do
-        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_falsey
-        non_default_todo_item_a.increase_rank
-        expect(non_default_todo_item_a.current_rank < non_default_todo_item_b.current_rank).to be_truthy
+      before (:each) do
+        ::DefaultTodoItem.destroy_all
+
+        # creates todo items
+        todo_item_soon_a
+        todo_item_soon_b
+        todo_item_later_a
+        todo_item_never_a
+        todo_item_never_b
       end
-    end
 
-    context "when current item is unranked" do
-      let!(:todo_item_a) { ::UnrankedTodoItem.create! }
-      let!(:todo_item_b) { ::UnrankedTodoItem.create! }
-
-      it "not raises error" do
-        expect(todo_item_b.current_rank).to be_nil
-        expect { todo_item_b.increase_rank }.not_to raise_error
+      it "increases rank for scope" do
+        expect { todo_item_soon_b.increase_rank }.to change(todo_item_soon_b, :rank).from(400).to(100)
+        expect { todo_item_later_a.increase_rank }.not_to change(todo_item_later_a, :rank)
+        expect { todo_item_never_b.increase_rank }.to change(todo_item_never_b, :rank).from(600).to(100)
       end
     end
   end
@@ -467,67 +497,95 @@
   end
 
   describe "#set_rank_above" do
-    let(:todo_item_group) do
-      4.times.each_with_index.map do |index|
-        ::DefaultTodoItem.create!(rank: (index + 1) * 100)
+    context "when used on an unscoped model" do
+      let(:todo_item_group) do
+        4.times.each_with_index.map do |index|
+          ::DefaultTodoItem.create!(rank: (index + 1) * 100)
+        end
+      end
+      let(:todo_item) { ::DefaultTodoItem.create!(title: "gonna make it!", rank: 250) }
+
+      before do
+        ::DefaultTodoItem.delete_all
+
+        # creates todo items
+        todo_item_group
+        todo_item
+      end
+
+      context "when moving to top of list" do
+        it "sets as highest item" do
+          expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
+          todo_item.set_rank_above(::DefaultTodoItem.get_highest_items(2).first)
+          expect(::DefaultTodoItem.get_highest_items(1)).to eq([todo_item])
+        end
+      end
+
+      context "when moving to not top of list" do
+        it "sets as not highest item" do
+          expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
+          todo_item.set_rank_above(::DefaultTodoItem.get_highest_items(2).second)
+          expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
+        end
       end
     end
-    let(:todo_item) { ::DefaultTodoItem.create!(title: "gonna make it!", rank: 250) }
 
-    before do
-      ::DefaultTodoItem.delete_all
+    context "when used on a scoped model" do
+      let(:todo_list_soon) { ::TodoList.create!(title: "300 ft plans") }
+      let(:todo_list_never) { ::TodoList.create!(title: "50_000 ft plans") }
+      let(:todo_item_soon_a) { ::ScopedListTodoItem.create!(todo_list: todo_list_soon, rank: 200) }
+      let(:todo_item_soon_b) { ::ScopedListTodoItem.create!(todo_list: todo_list_soon, rank: 400) }
+      let(:todo_item_never_a) { ::ScopedListTodoItem.create!(todo_list: todo_list_never, rank: 200) }
+      let(:todo_item_never_b) { ::ScopedListTodoItem.create!(todo_list: todo_list_never, rank: 600) }
 
-      # creates todo items
-      todo_item_group
-      todo_item
-    end
+      before (:each) do
+        ::DefaultTodoItem.destroy_all
 
-    context "when moving to top of list" do
-      it "sets as highest item" do
-        expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
-        todo_item.set_rank_above(::DefaultTodoItem.get_highest_items(2).first)
-        expect(::DefaultTodoItem.get_highest_items(1)).to eq([todo_item])
+        # creates todo items
+        todo_item_soon_a
+        todo_item_soon_b
+        todo_item_never_a
+        todo_item_never_b
       end
-    end
 
-    context "when moving to not top of list" do
-      it "sets as not highest item" do
-        expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
-        todo_item.set_rank_above(::DefaultTodoItem.get_highest_items(2).second)
-        expect(::DefaultTodoItem.get_highest_items(1)).not_to eq([todo_item])
+      it "increases rank for scope" do
+        expect { todo_item_soon_b.set_rank_above(todo_item_soon_a) }.to change(todo_item_soon_b, :rank).from(400).to(100)
+        expect { todo_item_never_b.set_rank_above(todo_item_never_a) }.to change(todo_item_never_b, :rank).from(600).to(100)
       end
     end
   end
 
   describe "#set_rank_below" do
-    let(:todo_item_group) do
-      4.times.each_with_index.map do |index|
-        ::DefaultTodoItem.create!(rank: (index + 1) * 100)
+    context "when used on an unscoped model" do
+      let(:todo_item_group) do
+        4.times.each_with_index.map do |index|
+          ::DefaultTodoItem.create!(rank: (index + 1) * 100)
+        end
       end
-    end
-    let(:todo_item) { ::DefaultTodoItem.create!(title: "oh no!", rank: 250) }
-
-    before do
-      ::DefaultTodoItem.delete_all
-
-      # creates todo items
-      todo_item_group
-      todo_item
-    end
-
-    context "when moving to bottom of list" do
-      it "sets as lowest item" do
-        expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
-        todo_item.set_rank_below(::DefaultTodoItem.get_lowest_items(2).first)
-        expect(::DefaultTodoItem.get_lowest_items(1)).to eq([todo_item])
+      let(:todo_item) { ::DefaultTodoItem.create!(title: "oh no!", rank: 250) }
+  
+      before do
+        ::DefaultTodoItem.delete_all
+  
+        # creates todo items
+        todo_item_group
+        todo_item
       end
-    end
-
-    context "when moving to not bottom of list" do
-      it "sets as not lowest item" do
-        expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
-        todo_item.set_rank_below(::DefaultTodoItem.get_lowest_items(2).second)
-        expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
+  
+      context "when moving to bottom of list" do
+        it "sets as lowest item" do
+          expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
+          todo_item.set_rank_below(::DefaultTodoItem.get_lowest_items(2).first)
+          expect(::DefaultTodoItem.get_lowest_items(1)).to eq([todo_item])
+        end
+      end
+  
+      context "when moving to not bottom of list" do
+        it "sets as not lowest item" do
+          expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
+          todo_item.set_rank_below(::DefaultTodoItem.get_lowest_items(2).second)
+          expect(::DefaultTodoItem.get_lowest_items(1)).not_to eq([todo_item])
+        end
       end
     end
   end
