@@ -43,10 +43,10 @@ module ActsAsRankedList
       # @option user_options [Boolean] :avoid_collisions Controls avoiding rank collisions
       # @option user_options [Symbol] :new_item_at Controls where to add new items
       # @option user_options [Hash] :scopes Scopes ranked items based on a column, and optional value
-      # @option scopes [String/Integer/Boolean/Float] :<any_key> Uses passed value in column <any_key> to scope items
-      # @option scopes [Symbol] :<any_key> Uses passed value in column <any_key> to scope items, or a named scope
-      # @option scopes [Proc] :<any_key> Calls passed block's value in column <any_key> to scope items, or an anonymous scope
-      # @option scopes [NilClass] :<any_key> Scopes items to a relationship, by querying non-nil values in column <any_key> or <any_key_id>
+      #   * :any_key [String/Integer/Boolean/Float] Uses passed value in column <any_key> to scope items
+      #   * :any_key [Symbol] Uses passed value in column <any_key> to scope items, or a named scope
+      #   * :any_key [Proc] Calls passed block's value in column <any_key> to scope items, or an anonymous scope
+      #   * :any_key [NilClass] Scopes items to a relationship, by querying non-nil values in column <any_key> or <any_key_id>
       # @return [void]
       def acts_as_ranked_list(user_options = {})
         options = {
