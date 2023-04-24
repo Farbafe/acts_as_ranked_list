@@ -25,8 +25,12 @@ module ActsAsRankedList #:nodoc:
                   when ::String, ::Integer, ::TrueClass, ::FalseClass, ::Float
                     "#{caller_class.quoted_table_name}.#{connection.quote_column_name(key)} = \"#{value}\""
                   when nil
-                    key_column_name = column_names.include?(key) ? key : "#{key}_id"
-                    "#{caller_class.quoted_table_name}.#{connection.quote_column_name(key_column_name)} IS NOT NULL"
+                    casted_key = key.to_s
+                    key_column_name = column_names.include?(casted_key) ? casted_key : "#{casted_key}_id"
+
+                    @grouped_scopes ||= []
+                    @grouped_scopes << key_column_name.to_sym
+                    next
                   when ::Proc
                     called_value = value.call
                     if called_value.is_a?(::String)
@@ -85,10 +89,11 @@ module ActsAsRankedList #:nodoc:
             @order_by_columns ||= {}
             @order_by_columns[order] ||= <<~ORDER_BY_COLUMNS.squish
               #{
-                [ quoted_rank_column,
+                [ *@grouped_scopes,
+                  quoted_rank_column,
                   *quoted_timestamp_attributes_for_update_in_model,
                   primary_key
-                ].join(" #{order}, ")
+                ].compact.join(" #{order}, ")
               } #{order}
             ORDER_BY_COLUMNS
           end
@@ -137,19 +142,23 @@ module ActsAsRankedList #:nodoc:
           end
 
           define_singleton_method :get_highest_items do |limit = 0|
-            query = acts_as_ranked_list_query.order(order_by_columns)
+            @get_highest_items_query ||= acts_as_ranked_list_query
+              .where("#{quoted_rank_column} IS NOT NULL")
+              .order(order_by_columns)
 
-            return query if limit == 0
-            
-            query.limit(limit)
+            return @get_highest_items_query if limit == 0
+
+            @get_highest_items_query.limit(limit)
           end
 
           define_singleton_method :get_lowest_items do |limit = 0|
-            query = acts_as_ranked_list_query.order(order_by_columns("DESC"))
+            @get_lowest_items_query ||= acts_as_ranked_list_query
+              .where("#{quoted_rank_column} IS NOT NULL")
+              .order(order_by_columns("DESC"))
 
-            return query if limit == 0
-            
-            query.limit(limit)
+            return @get_lowest_items_query if limit == 0
+
+            @get_lowest_items_query.limit(limit)
           end
         end
 
@@ -254,7 +263,12 @@ module ActsAsRankedList #:nodoc:
 
             query = self.class.acts_as_ranked_list_query
               .where("#{self.class.quoted_rank_column} #{operator} #{rank}")
-              .order(self.class.order_by_columns(order))
+
+            self.class.instance_variable_get(:@grouped_scopes)&.each do |grouped_scope|
+              query = query.where(grouped_scope => self.send(grouped_scope))
+            end
+
+            query = query.order(self.class.order_by_columns(order))
 
             query = query.distinct(self.class.quoted_rank_column) if distinct
 
@@ -271,7 +285,12 @@ module ActsAsRankedList #:nodoc:
 
             query = self.class.acts_as_ranked_list_query
               .where("#{self.class.quoted_rank_column} #{operator} #{rank}")
-              .order(self.class.order_by_columns(order))
+
+            self.class.instance_variable_get(:@grouped_scopes)&.each do |grouped_scope|
+              query = query.where(grouped_scope => self.send(grouped_scope))
+            end
+
+            query = query.order(self.class.order_by_columns(order))
 
             query = query.distinct(self.class.quoted_rank_column) if distinct
 
@@ -281,11 +300,11 @@ module ActsAsRankedList #:nodoc:
           end
 
           define_method :highest_item? do
-            self.class.get_highest_items(1).first == self
+            !get_higher_items.exists?
           end
 
           define_method :lowest_item? do
-            self.class.get_lowest_items(1).first == self
+            !get_lower_items.exists?
           end
 
           private

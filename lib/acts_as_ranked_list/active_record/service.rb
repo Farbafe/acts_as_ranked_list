@@ -81,11 +81,11 @@ module ActsAsRankedList
         end
 
         def ranked_list_before_update_callback
-          update_ranks
+          nil
         end
 
         def ranked_list_after_update_callback
-          nil
+          update_ranks
         end
 
         def ranked_list_after_save_callback
@@ -104,11 +104,24 @@ module ActsAsRankedList
 
           return if rank_changed? == false
 
-          return unless current_rank && self.class.acts_as_ranked_list_query.where(
-            "#{self.class.quoted_rank_column_with_table_name} = #{current_rank}"
-          ).count >= 1
+          return unless current_rank
 
-          self.class.spread_ranks
+          query_count = self.class.acts_as_ranked_list_query
+            .where("#{self.class.quoted_rank_column_with_table_name} = #{current_rank}")
+
+          self.class.instance_variable_get(:@grouped_scopes)&.each do |grouped_scope|
+            query_count = query_count.where(grouped_scope => self.send(grouped_scope))
+          end
+
+          query_count = query_count.count
+
+          if query_count == 0
+            return
+          end
+
+          self.class.with_skip_persistence do
+            self.class.spread_ranks
+          end
         end
 
         def set_new_item_rank
