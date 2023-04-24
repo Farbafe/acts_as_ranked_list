@@ -21,7 +21,7 @@ module ActsAsRankedList
       #   class TodoItem << ::ActiveRecord::Base
       #     belongs_to :todo_list
       #     scope :recently_added, -> { where(created_at: ::Time.now - 12.hours..) }
-      #     acts_as_ranked_list scope: do # you may use as many scopes together
+      #     acts_as_ranked_list scopes: do # you may use as many scopes together
       #       column_name_one: "work", # items that have value `work` in column `column_name_one` are scoped together
       #       column_name_two: :personal, # using a symbol is overloaded, check parameters and example for more info
       #       column_name_three: 0, # this could be used to sub-rank items within a rank
