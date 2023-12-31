@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2023-12-31
+
+- Updates gem dependencies.
+
 ## [0.2.2] - 2023-04-24
 
 - ~~Allows unranked items in list by having `nil` values.~~ Implicitly allowed behaviour since v0.2.0, also able to add new items can also be added as unranked. Adds documentation to this feature.

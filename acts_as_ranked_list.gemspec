@@ -32,15 +32,15 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Uncomment to register a new dependency of your gem
-  spec.add_dependency "rails", "~> 6.0.3", ">= 6.0.3.6" 
-  spec.add_dependency "rake", "~> 13.0"
-  spec.add_dependency "rspec", "~> 3.0"
-  spec.add_dependency "standard", "~> 1.3"
-  spec.add_dependency "rspec-rails", "5.1.2"
-  spec.add_development_dependency "byebug", "11.1.3"
-  spec.add_development_dependency "yard", "0.9.34"
-  spec.add_development_dependency "redcarpet", "3.6.0"
-  spec.add_development_dependency "sqlite3", "1.6.2"
+  spec.add_dependency "rails", ">= 6.0.3"
+  spec.add_dependency "rake", ">= 13.0"
+  spec.add_dependency "rspec", ">= 3.0"
+  spec.add_dependency "standard", ">= 1.3"
+  spec.add_dependency "rspec-rails", ">= 5.1.2"
+  spec.add_development_dependency "byebug", ">= 11.1.3"
+  spec.add_development_dependency "yard", ">= 0.9.34"
+  spec.add_development_dependency "redcarpet", ">= 3.6.0"
+  spec.add_development_dependency "sqlite3", ">= 1.6.2"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
