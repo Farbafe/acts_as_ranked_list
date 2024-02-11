@@ -312,7 +312,15 @@ module ActsAsRankedList #:nodoc:
           define_method :with_persistence do |items = [self], &blk|
             blk.call
 
+            item_record_timestamps = items.map do |i|
+              i.record_timestamps?
+            end
+
             items.each(&:save!) unless skip_persistence?
+
+            items.each_with_index do |i, idx|
+              i.record_timestamps = item_record_timestamps[idx]
+            end
           end
 
           define_method :pad_array do |array, value = nil, size = 2|
