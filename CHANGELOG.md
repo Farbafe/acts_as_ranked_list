@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-02-11
+
+- Fixes individual items updating timestamps even when `touch_on_update` is false.
+
 ## [0.2.3] - 2023-12-31
 
 - Updates gem dependencies.
