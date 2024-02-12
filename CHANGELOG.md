@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [0.3.0] - 2024-02-11
+## [0.4.0] - 2024-02-12
+
+- Fixes sporadic bug on postgres with `pluck` higher items.
+
+## [0.3.0] - 2024-02-11 [YANKED]
 
 - Fixes individual items updating timestamps even when `touch_on_update` is false.
 
