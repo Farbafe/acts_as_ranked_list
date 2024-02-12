@@ -198,7 +198,9 @@ module ActsAsRankedList #:nodoc:
 
           define_method :set_rank_above do |item|
             higher_items = get_higher_items(2, "DESC", item.current_rank, true, true)
-            padded_array = pad_array(higher_items.pluck(rank_column), 0)
+            # TODO: Why is higher_items and lower_items sometimes need to be converted to array.
+            # Is it related to if items are not found? Otherwise it returns an error
+            padded_array = pad_array(higher_items.to_a.pluck(rank_column), 0)
             new_rank = padded_array.sum / 2
 
             with_persistence do
@@ -223,7 +225,7 @@ module ActsAsRankedList #:nodoc:
             # new_rank = ::ActiveRecord::Base.connection.execute(sql).to_a.first.values.first
 
             lower_items = get_lower_items(2, "ASC", item.current_rank, true, true)
-            padded_array = pad_array(lower_items.pluck(rank_column))
+            padded_array = pad_array(lower_items.to_a.pluck(rank_column))
             new_rank = padded_array.sum / 2
 
             with_persistence do
@@ -315,6 +317,8 @@ module ActsAsRankedList #:nodoc:
             item_record_timestamps = items.map do |i|
               i.record_timestamps?
             end
+
+            items.each { |i| i.record_timestamps = touch_on_update }
 
             items.each(&:save!) unless skip_persistence?
 
